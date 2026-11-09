@@ -27,7 +27,10 @@ const describeAccess = (challenge: Challenge) => {
 };
 
 const ChallengeCard = ({ challenge }: { challenge: Challenge }) => (
-  <article className="challenge-card">
+  <Link
+    to={`/challenges/${encodeURIComponent(challenge.code)}`}
+    className="challenge-card"
+  >
     <div>
       <div className="challenge-card__top">
         <span className="challenge-card__code">{challenge.code}</span>
@@ -42,7 +45,7 @@ const ChallengeCard = ({ challenge }: { challenge: Challenge }) => (
       </span>
       <span className="challenge-card__points">{challenge.points} pts</span>
     </div>
-  </article>
+  </Link>
 );
 
 const PendingPanel = ({ title, text }: { title: string; text: string }) => (

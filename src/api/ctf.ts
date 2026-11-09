@@ -27,6 +27,52 @@ export type ChallengesResult =
   | { status: 'unauthenticated' }
   | { status: 'error'; message: string };
 
+export interface ChallengeDetail extends Challenge {
+  description: string;
+  flagType: 'STATIC' | 'DYNAMIC';
+}
+
+export type ChallengeDetailResult =
+  | { status: 'ok'; challenge: ChallengeDetail }
+  | { status: 'not-found' }
+  | { status: 'unauthenticated' }
+  | { status: 'error'; message: string };
+
+const DETAIL_ERROR_MESSAGE = '문제를 불러오지 못했습니다.';
+
+export const getChallenge = async (
+  code: string,
+  signal?: AbortSignal
+): Promise<ChallengeDetailResult> => {
+  try {
+    const response = await fetch(
+      `/api/ctf/challenges/${encodeURIComponent(code)}`,
+      {
+        headers: addVersionToHeaders(),
+        credentials: 'include',
+        signal,
+      }
+    );
+
+    if (response.status === 401 || response.status === 403) {
+      return { status: 'unauthenticated' };
+    }
+    if (response.status === 404) return { status: 'not-found' };
+
+    const result = await response.json().catch(() => null);
+    if (!response.ok || !result?.data) {
+      return {
+        status: 'error',
+        message: result?.message || DETAIL_ERROR_MESSAGE,
+      };
+    }
+    return { status: 'ok', challenge: result.data };
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    return { status: 'error', message: DETAIL_ERROR_MESSAGE };
+  }
+};
+
 export type CreateChallengeResult =
   | { status: 'ok'; id: number }
   | { status: 'duplicate'; message: string }

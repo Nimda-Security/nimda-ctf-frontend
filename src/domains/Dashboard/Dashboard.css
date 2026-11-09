@@ -275,6 +275,10 @@
   border-radius: 6px;
 }
 
+.challenge-card:hover {
+  border-color: var(--color-gray-500);
+}
+
 .challenge-card__top,
 .challenge-card__bottom {
   display: flex;
