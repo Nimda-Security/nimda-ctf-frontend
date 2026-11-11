@@ -14,7 +14,11 @@ import {
   type SubmitFlagResult,
 } from '@/api/ctf';
 import Layout from '@/components/Layout';
+import InstancePanel from './InstancePanel';
 import './ChallengeDetail.css';
+
+const usesInstance = (challenge: ChallengeDetail) =>
+  challenge.category === 'WEB' || challenge.category === 'PWN';
 
 type LoadState =
   | { status: 'loading'; code: string }
@@ -22,13 +26,8 @@ type LoadState =
   | { status: 'error'; code: string; message: string }
   | { status: 'ok'; code: string; challenge: ChallengeDetail };
 
+// WEB·PWN은 InstancePanel이 맡는다. 여기는 첨부파일 문제만.
 const describeAccess = (challenge: ChallengeDetail) => {
-  if (challenge.category === 'WEB' || challenge.category === 'PWN') {
-    return {
-      label: 'INSTANCE',
-      text: '인스턴스 실행은 인프라 연결 후 제공됩니다.',
-    };
-  }
   return {
     label: 'ATTACHMENT',
     text: challenge.hasAttachment
@@ -273,13 +272,21 @@ function ChallengeDetailPage() {
             </article>
 
             <aside className="detail__side">
-              <section className="detail-panel">
-                <div className="detail-panel__head">
-                  <h2>{access.label}</h2>
-                  <span>준비 중</span>
-                </div>
-                <p>{access.text}</p>
-              </section>
+              {usesInstance(challenge) ? (
+                <InstancePanel
+                  key={challenge.id}
+                  challenge={challenge}
+                  onUnauthenticated={() => navigate('/login', { replace: true })}
+                />
+              ) : (
+                <section className="detail-panel">
+                  <div className="detail-panel__head">
+                    <h2>{access.label}</h2>
+                    <span>준비 중</span>
+                  </div>
+                  <p>{access.text}</p>
+                </section>
+              )}
             </aside>
           </div>
         )}

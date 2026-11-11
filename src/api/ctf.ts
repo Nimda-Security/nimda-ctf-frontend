@@ -210,6 +210,142 @@ export const submitFlag = async (
   }
 };
 
+// ---------------------------------------------------------------- 인스턴스
+
+export const SERVER_DOWN_MESSAGE = 'CTF 서버가 아직 작동중이지 않습니다.';
+
+export type ServerStatusResult =
+  | { status: 'ok'; available: boolean }
+  | { status: 'unauthenticated' }
+  | { status: 'error'; message: string };
+
+/**
+ * CTF 서버가 인스턴스 요청을 받을 수 있는지.
+ * CTF 서버가 10초마다 갱신하는 신호를 보므로, 꺼진 뒤 최대 30초 늦게 반영된다.
+ */
+export const getServerStatus = async (
+  signal?: AbortSignal
+): Promise<ServerStatusResult> => {
+  try {
+    const response = await fetch('/api/ctf/server-status', {
+      headers: addVersionToHeaders(),
+      credentials: 'include',
+      signal,
+    });
+    if (response.status === 401 || response.status === 403) {
+      return { status: 'unauthenticated' };
+    }
+    const result = await response.json().catch(() => null);
+    if (!response.ok || typeof result?.data?.available !== 'boolean') {
+      return { status: 'error', message: 'CTF 서버 상태를 확인하지 못했습니다.' };
+    }
+    return { status: 'ok', available: result.data.available };
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    return { status: 'error', message: 'CTF 서버 상태를 확인하지 못했습니다.' };
+  }
+};
+
+export type InstanceStatus = 'PENDING' | 'READY' | 'FAILED' | 'EXPIRED';
+
+export interface InstanceView {
+  uuid: string;
+  status: InstanceStatus;
+  /** READY인 WEB 문제. 새 탭으로 연다. */
+  accessUrl?: string;
+  /** READY인 PWN 문제. nc host port로 붙는다. */
+  host?: string;
+  port?: number;
+  /** READY일 때 만료 시각(UTC). */
+  expiresAt?: string;
+  /** FAILED일 때 사유. */
+  message?: string;
+}
+
+export type InstanceResult =
+  // instance가 null이면 아직 시작한 적 없다.
+  | { status: 'ok'; instance: InstanceView | null }
+  // CTF 서버가 꺼져 있어서 시작 요청을 거절했다 (503).
+  | { status: 'unavailable'; message: string }
+  | { status: 'unauthenticated' }
+  | { status: 'error'; message: string };
+
+const parseInstance = async (
+  response: Response,
+  fallbackMessage: string
+): Promise<InstanceResult> => {
+  const result = await response.json().catch(() => null);
+
+  // Spring Security가 막은 경우(비로그인)는 공통 응답 형식이 아니다.
+  // "본인 인스턴스가 아닙니다" 같은 403은 공통 형식이라 에러로 보여준다.
+  if (
+    response.status === 401 ||
+    (response.status === 403 && result?.success === undefined)
+  ) {
+    return { status: 'unauthenticated' };
+  }
+  if (response.status === 503) {
+    return {
+      status: 'unavailable',
+      message: result?.message || SERVER_DOWN_MESSAGE,
+    };
+  }
+  if (!response.ok || !result?.data) {
+    return { status: 'error', message: result?.message || fallbackMessage };
+  }
+  if (result.data.hasInstance === false) {
+    return { status: 'ok', instance: null };
+  }
+  return { status: 'ok', instance: result.data };
+};
+
+const instanceRequest = async (
+  url: string,
+  init: RequestInit,
+  fallbackMessage: string,
+  signal?: AbortSignal
+): Promise<InstanceResult> => {
+  try {
+    const response = await fetch(url, {
+      ...init,
+      headers: addVersionToHeaders(),
+      credentials: 'include',
+      signal,
+    });
+    return await parseInstance(response, fallbackMessage);
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    return { status: 'error', message: fallbackMessage };
+  }
+};
+
+/** 이 문제로 내가 띄운 인스턴스. 페이지에 들어올 때 부른다. */
+export const getMyInstance = (code: string, signal?: AbortSignal) =>
+  instanceRequest(
+    `/api/ctf/instance/${encodeURIComponent(code)}`,
+    {},
+    '인스턴스 정보를 불러오지 못했습니다.',
+    signal
+  );
+
+/** 인스턴스 시작. 이미 만들고 있거나 떠 있으면 같은 인스턴스를 돌려준다. */
+export const startInstance = (code: string, signal?: AbortSignal) =>
+  instanceRequest(
+    `/api/ctf/instance/${encodeURIComponent(code)}`,
+    { method: 'POST' },
+    '인스턴스를 시작하지 못했습니다.',
+    signal
+  );
+
+/** 시작 직후 PENDING인 동안 폴링한다. */
+export const getInstanceStatus = (uuid: string, signal?: AbortSignal) =>
+  instanceRequest(
+    `/api/ctf/instance/status/${encodeURIComponent(uuid)}`,
+    {},
+    '인스턴스 상태를 불러오지 못했습니다.',
+    signal
+  );
+
 /** 202를 받은 제출의 채점 결과. 아직이면 pending. */
 export const getSubmission = async (
   submissionId: string,
