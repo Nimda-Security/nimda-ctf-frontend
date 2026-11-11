@@ -152,13 +152,38 @@
   color: var(--color-gray-600);
   background-color: var(--color-gray-100);
   border-radius: 8px;
+  cursor: pointer;
+}
+
+.detail__flag button:disabled {
   cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .detail__pending {
   margin-top: 8px;
   font-size: 12px;
   line-height: 1.4;
+  color: var(--color-gray-600);
+}
+
+.detail__verdict {
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.detail__verdict--correct {
+  color: var(--color-green);
+}
+
+.detail__verdict--wrong {
+  color: var(--color-red);
+}
+
+.detail__verdict--info {
   color: var(--color-gray-600);
 }
 

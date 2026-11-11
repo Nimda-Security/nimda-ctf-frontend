@@ -13,8 +13,20 @@ import './ChallengeCreate.css';
 type Isolation = 'NONE' | 'SHARED' | 'PER_USER';
 type FlagType = 'STATIC' | 'DYNAMIC';
 type FieldErrors = Partial<
-  Record<'code' | 'title' | 'description' | 'points' | 'flag' | 'zipFile', string>
+  Record<
+    | 'code'
+    | 'title'
+    | 'description'
+    | 'maxPoint'
+    | 'minPoint'
+    | 'decreasePoint'
+    | 'flag'
+    | 'zipFile',
+    string
+  >
 >;
+
+const INTEGER_PATTERN = /^\d+$/;
 
 const CODE_PATTERN = /^[a-zA-Z0-9_-]{1,50}$/;
 const MAX_ZIP_BYTES = 10 * 1024 * 1024;
@@ -128,7 +140,9 @@ function ChallengeCreatePage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<Category>('WEB');
-  const [points, setPoints] = useState('100');
+  const [maxPoint, setMaxPoint] = useState('100');
+  const [minPoint, setMinPoint] = useState('0');
+  const [decreasePoint, setDecreasePoint] = useState('10');
   const [isolation, setIsolation] = useState<Isolation>('PER_USER');
   const [flagType, setFlagType] = useState<FlagType>('STATIC');
   const [flag, setFlag] = useState('');
@@ -183,8 +197,21 @@ function ChallengeCreatePage() {
     }
     if (!title.trim()) next.title = '제목은 필수입니다.';
     if (!description.trim()) next.description = '설명은 필수입니다.';
-    if (points.trim() && !/^\d+$/.test(points.trim())) {
-      next.points = '점수는 0 이상의 정수로 입력해 주세요.';
+    const pointFields = [
+      ['maxPoint', maxPoint],
+      ['minPoint', minPoint],
+      ['decreasePoint', decreasePoint],
+    ] as const;
+    for (const [key, value] of pointFields) {
+      if (value.trim() && !INTEGER_PATTERN.test(value.trim())) {
+        next[key] = '0 이상의 정수로 입력해 주세요.';
+      }
+    }
+    // 비워 둔 값은 서버 기본값(최대 100, 최소 0)으로 비교한다.
+    const max = Number(maxPoint.trim() || 100);
+    const min = Number(minPoint.trim() || 0);
+    if (!next.maxPoint && !next.minPoint && min > max) {
+      next.minPoint = '최소 점수는 최대 점수보다 클 수 없습니다.';
     }
     if (flagType === 'STATIC' && !flag.trim()) {
       next.flag = 'STATIC 문제는 플래그가 필요합니다.';
@@ -206,7 +233,11 @@ function ChallengeCreatePage() {
     form.append('title', title.trim());
     form.append('description', description);
     form.append('category', category);
-    if (points.trim()) form.append('points', points.trim());
+    if (maxPoint.trim()) form.append('maxPoint', maxPoint.trim());
+    if (minPoint.trim()) form.append('minPoint', minPoint.trim());
+    if (decreasePoint.trim()) {
+      form.append('decreasePoint', decreasePoint.trim());
+    }
     form.append('flagType', flagType);
     if (flagType === 'STATIC') form.append('flag', flag);
     form.append('isolationType', isolation);
@@ -299,17 +330,47 @@ function ChallengeCreatePage() {
 
               <div className="cc__row">
                 <Field
-                  label="점수 (points)"
+                  label="최대 점수 (maxPoint)"
                   requirement="선택"
-                  helper="비워 두면 100점"
-                  error={errors.points}
+                  helper="첫 해결자가 받는 점수 · 비워 두면 100"
+                  error={errors.maxPoint}
                 >
                   <input
                     className="cc-input"
                     inputMode="numeric"
-                    value={points}
-                    aria-invalid={Boolean(errors.points)}
-                    onChange={(e) => setPoints(e.target.value)}
+                    value={maxPoint}
+                    aria-invalid={Boolean(errors.maxPoint)}
+                    onChange={(e) => setMaxPoint(e.target.value)}
+                  />
+                </Field>
+                <Field
+                  label="최소 점수 (minPoint)"
+                  requirement="선택"
+                  helper="이 밑으로는 내려가지 않음 · 비워 두면 0"
+                  error={errors.minPoint}
+                >
+                  <input
+                    className="cc-input"
+                    inputMode="numeric"
+                    value={minPoint}
+                    aria-invalid={Boolean(errors.minPoint)}
+                    onChange={(e) => setMinPoint(e.target.value)}
+                  />
+                </Field>
+              </div>
+              <div className="cc__row">
+                <Field
+                  label="감소 점수 (decreasePoint)"
+                  requirement="선택"
+                  helper="해결자 1명당 깎이는 점수 · 비워 두면 10"
+                  error={errors.decreasePoint}
+                >
+                  <input
+                    className="cc-input"
+                    inputMode="numeric"
+                    value={decreasePoint}
+                    aria-invalid={Boolean(errors.decreasePoint)}
+                    onChange={(e) => setDecreasePoint(e.target.value)}
                   />
                 </Field>
                 <div />
