@@ -28,8 +28,22 @@ export interface Challenge {
 
 export type ChallengesResult =
   | { status: 'ok'; challenges: Challenge[] }
+  // 팀전이라 팀이 없는 참가자에게는 문제를 보여주지 않는다 (공통 형식 403).
+  | { status: 'no-team'; message: string }
   | { status: 'unauthenticated' }
   | { status: 'error'; message: string };
+
+export const NO_TEAM_MESSAGE =
+  '팀에 소속되어 있지 않습니다. 운영진이 팀을 배정하면 문제가 공개됩니다.';
+
+/**
+ * 403은 두 가지다. 로그인이 풀린 경우는 Spring Security 기본 형식(success 없음),
+ * 팀이 없는 경우는 공통 형식(success: false, message)이다.
+ */
+const classify403 = (result: { success?: boolean; message?: string } | null) =>
+  result?.success === false
+    ? ({ status: 'no-team', message: result.message || NO_TEAM_MESSAGE } as const)
+    : ({ status: 'unauthenticated' } as const);
 
 export interface ChallengeDetail extends Challenge {
   description: string;
@@ -39,6 +53,7 @@ export interface ChallengeDetail extends Challenge {
 export type ChallengeDetailResult =
   | { status: 'ok'; challenge: ChallengeDetail }
   | { status: 'not-found' }
+  | { status: 'no-team'; message: string }
   | { status: 'unauthenticated' }
   | { status: 'error'; message: string };
 
@@ -58,12 +73,11 @@ export const getChallenge = async (
       }
     );
 
-    if (response.status === 401 || response.status === 403) {
-      return { status: 'unauthenticated' };
-    }
+    const result = await response.json().catch(() => null);
+    if (response.status === 401) return { status: 'unauthenticated' };
+    if (response.status === 403) return classify403(result);
     if (response.status === 404) return { status: 'not-found' };
 
-    const result = await response.json().catch(() => null);
     if (!response.ok || !result?.data) {
       return {
         status: 'error',
@@ -130,11 +144,10 @@ export const getChallenges = async (
       signal,
     });
 
-    if (response.status === 401 || response.status === 403) {
-      return { status: 'unauthenticated' };
-    }
-
     const result = await response.json().catch(() => null);
+    if (response.status === 401) return { status: 'unauthenticated' };
+    if (response.status === 403) return classify403(result);
+
     if (!response.ok || !Array.isArray(result?.data)) {
       return { status: 'error', message: result?.message || LOAD_ERROR_MESSAGE };
     }

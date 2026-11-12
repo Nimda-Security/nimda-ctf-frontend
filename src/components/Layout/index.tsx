@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
-import type { CurrentUser } from '@/api/auth';
+import { Link, NavLink } from 'react-router-dom';
+import { canManageTeams, type CurrentUser } from '@/api/auth';
 import './Layout.css';
 
 interface LayoutProps {
@@ -35,6 +35,17 @@ const Layout = ({ children, user, onLogout }: LayoutProps) => {
             <img src="/nimda.png" alt="" width="20" />
             NIMDA
           </Link>
+          {user && (
+            <nav className="layout__nav" aria-label="CTF 메뉴">
+              <NavLink to="/" end>
+                문제
+              </NavLink>
+              <NavLink to="/scoreboard">스코어보드</NavLink>
+              {canManageTeams(user) && (
+                <NavLink to="/admin/teams">팀 빌딩</NavLink>
+              )}
+            </nav>
+          )}
           {user && (
             <div className="layout__user">
               <span className="layout__nickname">{user.nickname}</span>

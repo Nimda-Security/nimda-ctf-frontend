@@ -1,8 +1,10 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ChallengeCreatePage from '@/domains/admin/ChallengeCreate';
+import TeamBuildingPage from '@/domains/admin/TeamBuilding';
 import ChallengeDetailPage from '@/domains/ChallengeDetail';
 import DashboardPage from '@/domains/Dashboard';
+import ScoreboardPage from '@/domains/Scoreboard';
 import LoginPage from '@/domains/User/Login/Page';
 
 const Router = () => {
@@ -14,6 +16,8 @@ const Router = () => {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/challenges/:code" element={<ChallengeDetailPage />} />
           <Route path="/admin/challenges/new" element={<ChallengeCreatePage />} />
+          <Route path="/scoreboard" element={<ScoreboardPage />} />
+          <Route path="/admin/teams" element={<TeamBuildingPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

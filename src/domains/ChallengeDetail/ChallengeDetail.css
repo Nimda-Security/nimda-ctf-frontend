@@ -160,6 +160,10 @@
   opacity: 0.6;
 }
 
+.detail__no-team {
+  margin-top: 24px;
+}
+
 .detail__pending {
   margin-top: 8px;
   font-size: 12px;

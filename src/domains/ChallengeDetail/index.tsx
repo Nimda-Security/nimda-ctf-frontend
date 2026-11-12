@@ -14,6 +14,7 @@ import {
   type SubmitFlagResult,
 } from '@/api/ctf';
 import Layout from '@/components/Layout';
+import NoTeam from '@/components/NoTeam';
 import InstancePanel from './InstancePanel';
 import './ChallengeDetail.css';
 
@@ -23,6 +24,7 @@ const usesInstance = (challenge: ChallengeDetail) =>
 type LoadState =
   | { status: 'loading'; code: string }
   | { status: 'not-found'; code: string }
+  | { status: 'no-team'; code: string; message: string }
   | { status: 'error'; code: string; message: string }
   | { status: 'ok'; code: string; challenge: ChallengeDetail };
 
@@ -218,6 +220,12 @@ function ChallengeDetailPage() {
 
         {current.status === 'loading' && (
           <p className="detail__message">문제를 불러오는 중입니다.</p>
+        )}
+
+        {current.status === 'no-team' && (
+          <div className="detail__no-team">
+            <NoTeam nickname={user.nickname} />
+          </div>
         )}
 
         {current.status === 'not-found' && (
