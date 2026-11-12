@@ -437,6 +437,22 @@
   color: var(--color-red);
 }
 
+.dashboard__banner {
+  width: 100%;
+  max-width: 1008px;
+  margin: 0 auto;
+  padding: 32px 24px 0;
+}
+
+.dashboard__banner:empty {
+  display: none;
+}
+
+.dashboard__closed {
+  border: 1px dashed var(--color-gray-300);
+  border-radius: 8px;
+}
+
 .dashboard--single .dashboard__challenges {
   max-width: 960px;
 }

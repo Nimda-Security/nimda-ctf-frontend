@@ -1,9 +1,12 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ChallengeCreatePage from '@/domains/admin/ChallengeCreate';
+import ContestSettingsPage from '@/domains/admin/ContestSettings';
 import TeamBuildingPage from '@/domains/admin/TeamBuilding';
 import ChallengeDetailPage from '@/domains/ChallengeDetail';
 import DashboardPage from '@/domains/Dashboard';
+import HistoryPage from '@/domains/History';
+import HistoryDetailPage from '@/domains/History/Detail';
 import ScoreboardPage from '@/domains/Scoreboard';
 import LoginPage from '@/domains/User/Login/Page';
 
@@ -17,7 +20,10 @@ const Router = () => {
           <Route path="/challenges/:code" element={<ChallengeDetailPage />} />
           <Route path="/admin/challenges/new" element={<ChallengeCreatePage />} />
           <Route path="/scoreboard" element={<ScoreboardPage />} />
+          <Route path="/history" element={<HistoryPage />} />
+          <Route path="/history/:contestId" element={<HistoryDetailPage />} />
           <Route path="/admin/teams" element={<TeamBuildingPage />} />
+          <Route path="/admin/settings" element={<ContestSettingsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

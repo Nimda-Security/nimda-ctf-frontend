@@ -41,8 +41,12 @@ const Layout = ({ children, user, onLogout }: LayoutProps) => {
                 문제
               </NavLink>
               <NavLink to="/scoreboard">스코어보드</NavLink>
+              <NavLink to="/history">이력</NavLink>
               {canManageTeams(user) && (
-                <NavLink to="/admin/teams">팀 빌딩</NavLink>
+                <>
+                  <NavLink to="/admin/teams">팀 빌딩</NavLink>
+                  <NavLink to="/admin/settings">대회 설정</NavLink>
+                </>
               )}
             </nav>
           )}

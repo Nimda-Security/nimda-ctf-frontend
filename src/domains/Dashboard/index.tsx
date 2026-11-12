@@ -16,6 +16,8 @@ import {
 } from '@/api/scoreboard';
 import Layout from '@/components/Layout';
 import NoTeam from '@/components/NoTeam';
+import ScheduleBanner from '@/components/ScheduleBanner';
+import { describeRemaining, useSchedule } from '@/hooks/useSchedule';
 import './Dashboard.css';
 
 type Filter = 'ALL' | Category;
@@ -24,6 +26,7 @@ type LoadState =
   | { status: 'loading' }
   | { status: 'error'; message: string }
   | { status: 'no-team'; message: string }
+  | { status: 'closed'; message: string }
   | { status: 'ok'; challenges: Challenge[] };
 
 interface ScoreState {
@@ -136,6 +139,7 @@ function DashboardPage() {
   const [load, setLoad] = useState<LoadState>({ status: 'loading' });
   const [score, setScore] = useState<ScoreState | null>(null);
   const [retryKey, setRetryKey] = useState(0);
+  const schedule = useSchedule(() => navigate('/login', { replace: true }));
 
   useEffect(() => {
     const controller = new AbortController();
@@ -203,6 +207,7 @@ function DashboardPage() {
 
   const myTeam = score?.myTeam ?? null;
   const noTeam = load.status === 'no-team';
+  const remaining = describeRemaining(schedule);
   const stats = [
     ['팀 점수', myTeam ? `${myTeam.totalScore} pts` : '-'],
     [
@@ -210,7 +215,7 @@ function DashboardPage() {
       myTeam?.rank ? `#${myTeam.rank} / ${myTeam.totalTeams}` : '-',
     ],
     ['팀 해결 문제', myTeam ? String(myTeam.solveCount) : '-'],
-    ['대회 남은 시간', '준비 중'],
+    [remaining.label, remaining.value],
   ];
 
   return (
@@ -259,7 +264,7 @@ function DashboardPage() {
               <span className="stats__label">{label}</span>
               <strong
                 className={
-                  value === '준비 중' || value === '-'
+                  ['-', '종료', '일정 미정'].includes(value)
                     ? 'stats__value--pending'
                     : 'stats__value'
                 }
@@ -271,14 +276,24 @@ function DashboardPage() {
         </div>
       </section>
 
-      {noTeam ? (
+      <div className="dashboard__banner">
+        <ScheduleBanner schedule={schedule} />
+      </div>
+
+      {noTeam || load.status === 'closed' ? (
         <div className="dashboard dashboard--single">
           <section className="dashboard__challenges">
             <p className="dashboard__eyebrow">CHALLENGES</p>
             <h2 className="dashboard__heading dashboard__heading--spaced">
               문제 목록
             </h2>
-            <NoTeam nickname={user.nickname} />
+            {load.status === 'closed' ? (
+              <p className="dashboard__message dashboard__closed" role="status">
+                {load.message} 운영 정책에 따라 종료 후 문제를 공개하지 않습니다.
+              </p>
+            ) : (
+              <NoTeam nickname={user.nickname} />
+            )}
           </section>
         </div>
       ) : (

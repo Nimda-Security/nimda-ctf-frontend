@@ -160,6 +160,14 @@
   opacity: 0.6;
 }
 
+.detail__banner {
+  margin-top: 16px;
+}
+
+.detail__banner:empty {
+  display: none;
+}
+
 .detail__no-team {
   margin-top: 24px;
 }

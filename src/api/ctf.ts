@@ -30,6 +30,8 @@ export type ChallengesResult =
   | { status: 'ok'; challenges: Challenge[] }
   // 팀전이라 팀이 없는 참가자에게는 문제를 보여주지 않는다 (공통 형식 403).
   | { status: 'no-team'; message: string }
+  // 대회가 끝났고 운영자가 종료 후 문제 공개를 껐다 (공통 형식 403).
+  | { status: 'closed'; message: string }
   | { status: 'unauthenticated' }
   | { status: 'error'; message: string };
 
@@ -37,13 +39,17 @@ export const NO_TEAM_MESSAGE =
   '팀에 소속되어 있지 않습니다. 운영진이 팀을 배정하면 문제가 공개됩니다.';
 
 /**
- * 403은 두 가지다. 로그인이 풀린 경우는 Spring Security 기본 형식(success 없음),
- * 팀이 없는 경우는 공통 형식(success: false, message)이다.
+ * 403은 세 가지다. 로그인이 풀린 경우는 Spring Security 기본 형식(success 없음),
+ * 팀이 없거나 대회가 끝나 문제를 닫은 경우는 공통 형식(success: false, message)이다.
+ * 둘은 상태 코드가 같아서 메시지로 구분한다.
  */
-const classify403 = (result: { success?: boolean; message?: string } | null) =>
-  result?.success === false
-    ? ({ status: 'no-team', message: result.message || NO_TEAM_MESSAGE } as const)
-    : ({ status: 'unauthenticated' } as const);
+const classify403 = (result: { success?: boolean; message?: string } | null) => {
+  if (result?.success !== false) return { status: 'unauthenticated' } as const;
+  const message = result.message || NO_TEAM_MESSAGE;
+  return message.startsWith('팀에 소속되어 있지 않습니다')
+    ? ({ status: 'no-team', message } as const)
+    : ({ status: 'closed', message } as const);
+};
 
 export interface ChallengeDetail extends Challenge {
   description: string;
@@ -54,6 +60,7 @@ export type ChallengeDetailResult =
   | { status: 'ok'; challenge: ChallengeDetail }
   | { status: 'not-found' }
   | { status: 'no-team'; message: string }
+  | { status: 'closed'; message: string }
   | { status: 'unauthenticated' }
   | { status: 'error'; message: string };
 

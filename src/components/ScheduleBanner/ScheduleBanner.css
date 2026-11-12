@@ -1,0 +1,61 @@
+.schedule-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border: 1px solid var(--color-gray-200);
+  border-radius: 8px;
+}
+
+.schedule-banner strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.schedule-banner p {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--color-gray-600);
+}
+
+.schedule-banner__time {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.schedule-banner--soon {
+  background-color: rgb(232 180 70 / 0.14);
+  border-color: var(--color-yellow);
+}
+
+.schedule-banner--soon .schedule-banner__time {
+  color: var(--color-yellow);
+}
+
+.schedule-banner--ended {
+  color: var(--color-white);
+  background-color: var(--color-black);
+  border-color: var(--color-black);
+}
+
+.schedule-banner--ended p {
+  color: var(--color-gray-300);
+}
+
+.schedule-banner__link {
+  flex-shrink: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+@media (max-width: 560px) {
+  .schedule-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

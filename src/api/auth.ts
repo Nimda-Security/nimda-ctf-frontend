@@ -13,7 +13,7 @@ export const canCreateChallenge = (user: CurrentUser): boolean =>
     user.roles?.includes('ROLE_DEV') || user.roles?.includes('ROLE_ADMIN')
   );
 
-/** 팀 빌딩은 백엔드가 ADMIN에게만 연다. */
+/** 팀 빌딩·대회 설정은 백엔드가 ADMIN에게만 연다. */
 export const canManageTeams = (user: CurrentUser): boolean =>
   Boolean(user.roles?.includes('ROLE_ADMIN'));
 

@@ -5,7 +5,7 @@ import {
   useOutletContext,
   useParams,
 } from 'react-router-dom';
-import { logoutAPI, type CurrentUser } from '@/api/auth';
+import { canCreateChallenge, logoutAPI, type CurrentUser } from '@/api/auth';
 import {
   getChallenge,
   getSubmission,
@@ -15,6 +15,8 @@ import {
 } from '@/api/ctf';
 import Layout from '@/components/Layout';
 import NoTeam from '@/components/NoTeam';
+import ScheduleBanner from '@/components/ScheduleBanner';
+import { submissionBlockedReason, useSchedule } from '@/hooks/useSchedule';
 import InstancePanel from './InstancePanel';
 import './ChallengeDetail.css';
 
@@ -25,6 +27,7 @@ type LoadState =
   | { status: 'loading'; code: string }
   | { status: 'not-found'; code: string }
   | { status: 'no-team'; code: string; message: string }
+  | { status: 'closed'; code: string; message: string }
   | { status: 'error'; code: string; message: string }
   | { status: 'ok'; code: string; challenge: ChallengeDetail };
 
@@ -57,10 +60,12 @@ const sleep = (ms: number, signal: AbortSignal) =>
 
 interface FlagFormProps {
   challenge: ChallengeDetail;
+  /** 대회 시작 전·종료 후라 제출할 수 없으면 그 이유 */
+  blockedReason: string | null;
   onUnauthenticated: () => void;
 }
 
-const FlagForm = ({ challenge, onUnauthenticated }: FlagFormProps) => {
+const FlagForm = ({ challenge, blockedReason, onUnauthenticated }: FlagFormProps) => {
   const [flag, setFlag] = useState('');
   const [state, setState] = useState<FlagState>({ status: 'idle' });
   const controllerRef = useRef<AbortController | null>(null);
@@ -68,7 +73,7 @@ const FlagForm = ({ challenge, onUnauthenticated }: FlagFormProps) => {
   // 페이지를 떠나면 진행 중인 제출·폴링을 멈춘다.
   useEffect(() => () => controllerRef.current?.abort(), []);
 
-  const supported = challenge.flagType === 'STATIC';
+  const supported = challenge.flagType === 'STATIC' && !blockedReason;
   const isSubmitting = state.status === 'submitting';
 
   const describe = (
@@ -138,7 +143,7 @@ const FlagForm = ({ challenge, onUnauthenticated }: FlagFormProps) => {
         <input
           value={flag}
           disabled={!supported || isSubmitting}
-          placeholder="NIMDA{...}"
+          placeholder={blockedReason ?? 'NIMDA{...}'}
           aria-label="플래그"
           autoComplete="off"
           spellCheck={false}
@@ -152,10 +157,14 @@ const FlagForm = ({ challenge, onUnauthenticated }: FlagFormProps) => {
           {isSubmitting ? '채점 중...' : '제출'}
         </button>
       </form>
-      {!supported && (
-        <p className="detail__pending">
-          DYNAMIC 플래그 제출은 아직 지원하지 않습니다.
-        </p>
+      {blockedReason ? (
+        <p className="detail__pending">{blockedReason}</p>
+      ) : (
+        !supported && (
+          <p className="detail__pending">
+            DYNAMIC 플래그 제출은 아직 지원하지 않습니다.
+          </p>
+        )
       )}
       {state.status === 'done' && (
         <p
@@ -175,6 +184,11 @@ function ChallengeDetailPage() {
   const { code = '' } = useParams();
   const [load, setLoad] = useState<LoadState>({ status: 'loading', code });
   const [retryKey, setRetryKey] = useState(0);
+  const schedule = useSchedule(() => navigate('/login', { replace: true }));
+  // 관리자·DEV는 검수를 위해 대회 시간과 상관없이 제출할 수 있다 (점수는 기록되지 않는다).
+  const blockedReason = canCreateChallenge(user)
+    ? null
+    : submissionBlockedReason(schedule.phase);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -220,6 +234,19 @@ function ChallengeDetailPage() {
 
         {current.status === 'loading' && (
           <p className="detail__message">문제를 불러오는 중입니다.</p>
+        )}
+
+        <div className="detail__banner">
+          <ScheduleBanner schedule={schedule} />
+        </div>
+
+        {current.status === 'closed' && (
+          <div className="detail__message" role="status">
+            <p>{current.message}</p>
+            <Link to="/scoreboard" className="detail__link">
+              최종 순위 보기
+            </Link>
+          </div>
         )}
 
         {current.status === 'no-team' && (
@@ -275,6 +302,7 @@ function ChallengeDetailPage() {
               <FlagForm
                 key={challenge.id}
                 challenge={challenge}
+                blockedReason={blockedReason}
                 onUnauthenticated={() => navigate('/login', { replace: true })}
               />
             </article>
