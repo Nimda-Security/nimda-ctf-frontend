@@ -14,6 +14,7 @@ import {
   type MyTeamScore,
   type ScoreboardEntry,
 } from '@/api/scoreboard';
+import { getMyTeam, type Team } from '@/api/teams';
 import Layout from '@/components/Layout';
 import NoTeam from '@/components/NoTeam';
 import ScheduleBanner from '@/components/ScheduleBanner';
@@ -34,6 +35,11 @@ interface ScoreState {
   top: ScoreboardEntry[];
   failed: boolean;
 }
+
+type TeamState =
+  | { status: 'loading' }
+  | { status: 'error'; message: string }
+  | { status: 'ok'; team: Team | null };
 
 const LEADERBOARD_SIZE = 5;
 
@@ -102,6 +108,57 @@ const Leaderboard = ({ score }: { score: ScoreState | null }) => (
   </section>
 );
 
+const MyTeam = ({ state, nickname }: { state: TeamState; nickname: string }) => {
+  const team = state.status === 'ok' ? state.team : null;
+  return (
+    <section className="side-panel">
+      <h2 className="side-panel__title">MY TEAM</h2>
+      {state.status === 'loading' && (
+        <p className="side-panel__text">불러오는 중입니다.</p>
+      )}
+      {state.status === 'error' && (
+        <p className="side-panel__text">{state.message}</p>
+      )}
+      {state.status === 'ok' && !team && (
+        <p className="side-panel__text">
+          소속된 팀이 없습니다. 운영진이 팀을 배정하면 여기에 표시됩니다.
+        </p>
+      )}
+      {team && (
+        <>
+          <div className="my-team__head">
+            <strong className="my-team__name">{team.name}</strong>
+            <span className="my-team__count">
+              {team.memberCount}/{team.capacity}
+            </span>
+          </div>
+          {team.description && (
+            <p className="side-panel__text my-team__desc">{team.description}</p>
+          )}
+          <ul className="my-team__members">
+            {team.members.map((member) => (
+              <li
+                key={member.userId}
+                className={
+                  member.nickname === nickname
+                    ? 'my-team__member my-team__member--me'
+                    : 'my-team__member'
+                }
+              >
+                <span className="my-team__nickname">{member.nickname}</span>
+                <span className="my-team__login">{member.loginId}</span>
+                {member.role === 'LEADER' && (
+                  <span className="my-team__leader">팀장</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </section>
+  );
+};
+
 const RecentSolves = ({ score }: { score: ScoreState | null }) => {
   const solves = score?.myTeam?.recentSolves.slice(0, LEADERBOARD_SIZE) ?? [];
   return (
@@ -138,6 +195,7 @@ function DashboardPage() {
   const [filter, setFilter] = useState<Filter>('ALL');
   const [load, setLoad] = useState<LoadState>({ status: 'loading' });
   const [score, setScore] = useState<ScoreState | null>(null);
+  const [team, setTeam] = useState<TeamState>({ status: 'loading' });
   const [retryKey, setRetryKey] = useState(0);
   const schedule = useSchedule(() => navigate('/login', { replace: true }));
 
@@ -171,6 +229,20 @@ function DashboardPage() {
           top: board.status === 'ok' ? board.data.entries : [],
           failed: mine.status === 'error' || board.status === 'error',
         });
+      })
+      .catch(() => {
+        // 화면을 떠나며 취소된 요청은 무시한다.
+      });
+
+    getMyTeam(controller.signal)
+      .then((result) => {
+        if (result.status === 'unauthenticated') {
+          navigate('/login', { replace: true });
+        } else if (result.status === 'error') {
+          setTeam({ status: 'error', message: result.message });
+        } else {
+          setTeam({ status: 'ok', team: result.data.team });
+        }
       })
       .catch(() => {
         // 화면을 떠나며 취소된 요청은 무시한다.
@@ -360,6 +432,7 @@ function DashboardPage() {
         </section>
 
         <aside className="dashboard__side">
+          <MyTeam state={team} nickname={user.nickname} />
           <Leaderboard score={score} />
           <RecentSolves score={score} />
         </aside>
