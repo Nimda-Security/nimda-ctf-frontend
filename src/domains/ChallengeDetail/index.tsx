@@ -17,6 +17,7 @@ import Layout from '@/components/Layout';
 import NoTeam from '@/components/NoTeam';
 import ScheduleBanner from '@/components/ScheduleBanner';
 import { submissionBlockedReason, useSchedule } from '@/hooks/useSchedule';
+import AttachmentPanel from './AttachmentPanel';
 import InstancePanel from './InstancePanel';
 import './ChallengeDetail.css';
 
@@ -30,16 +31,6 @@ type LoadState =
   | { status: 'closed'; code: string; message: string }
   | { status: 'error'; code: string; message: string }
   | { status: 'ok'; code: string; challenge: ChallengeDetail };
-
-// WEB·PWN은 InstancePanel이 맡는다. 여기는 첨부파일 문제만.
-const describeAccess = (challenge: ChallengeDetail) => {
-  return {
-    label: 'ATTACHMENT',
-    text: challenge.hasAttachment
-      ? '파일 다운로드는 인프라 연결 후 제공됩니다.'
-      : '첨부파일이 없는 문제입니다.',
-  };
-};
 
 const POLL_INTERVAL_MS = 1000;
 const POLL_TIMEOUT_MS = 30_000;
@@ -222,7 +213,6 @@ function ChallengeDetailPage() {
   const current: LoadState =
     load.code === code ? load : { status: 'loading', code };
   const challenge = current.status === 'ok' ? current.challenge : null;
-  const access = challenge ? describeAccess(challenge) : null;
 
   return (
     <Layout user={user} onLogout={handleLogout}>
@@ -273,7 +263,7 @@ function ChallengeDetailPage() {
           </div>
         )}
 
-        {challenge && access && (
+        {challenge && (
           <div className="detail__columns">
             <article className="detail__main">
               <div className="detail__meta">
@@ -315,13 +305,11 @@ function ChallengeDetailPage() {
                   onUnauthenticated={() => navigate('/login', { replace: true })}
                 />
               ) : (
-                <section className="detail-panel">
-                  <div className="detail-panel__head">
-                    <h2>{access.label}</h2>
-                    <span>준비 중</span>
-                  </div>
-                  <p>{access.text}</p>
-                </section>
+                <AttachmentPanel
+                  key={challenge.id}
+                  challenge={challenge}
+                  onUnauthenticated={() => navigate('/login', { replace: true })}
+                />
               )}
             </aside>
           </div>

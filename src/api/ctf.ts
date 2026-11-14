@@ -386,3 +386,73 @@ export const getSubmission = async (
     return { status: 'error', message: '채점 결과를 불러오지 못했습니다.' };
   }
 };
+
+export type DownloadResult =
+  // 링크 발급 완료. expiresAt이 비어 있으면 만료 시각을 모른다.
+  | { status: 'ready'; url: string; expiresAt: string | null }
+  // 3초 안에 발급되지 않았다. requestId로 getDownloadStatus를 폴링한다.
+  | { status: 'pending'; requestId: string }
+  | { status: 'unauthenticated' }
+  | { status: 'error'; message: string };
+
+const DOWNLOAD_ERROR_MESSAGE = '다운로드 링크를 받지 못했습니다.';
+
+const parseDownload = async (response: Response): Promise<DownloadResult> => {
+  const result = await response.json().catch(() => null);
+
+  // Spring Security가 막은 경우(비로그인)는 공통 응답 형식이 아니다.
+  if (
+    response.status === 401 ||
+    (response.status === 403 && result?.success === undefined)
+  ) {
+    return { status: 'unauthenticated' };
+  }
+  // 503은 CTF 서버가 준 발급 실패 사유를 message로 담아 온다.
+  if (!response.ok || !result?.data) {
+    return { status: 'error', message: result?.message || DOWNLOAD_ERROR_MESSAGE };
+  }
+
+  const data = result.data;
+  if (data.status === 'PENDING') {
+    return { status: 'pending', requestId: data.requestId };
+  }
+  if (data.status === 'READY' && data.url) {
+    return { status: 'ready', url: data.url, expiresAt: data.expiresAt || null };
+  }
+  return { status: 'error', message: DOWNLOAD_ERROR_MESSAGE };
+};
+
+const downloadRequest = async (
+  url: string,
+  init: RequestInit,
+  signal?: AbortSignal
+): Promise<DownloadResult> => {
+  try {
+    const response = await fetch(url, {
+      ...init,
+      headers: addVersionToHeaders(),
+      credentials: 'include',
+      signal,
+    });
+    return await parseDownload(response);
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    return { status: 'error', message: DOWNLOAD_ERROR_MESSAGE };
+  }
+};
+
+/** 첨부파일 다운로드 링크 요청. 같은 문제는 서버가 캐시한 링크를 돌려준다. */
+export const requestDownload = (code: string, signal?: AbortSignal) =>
+  downloadRequest(
+    `/api/ctf/challenge/${encodeURIComponent(code)}/download`,
+    { method: 'POST' },
+    signal
+  );
+
+/** 202를 받은 다운로드 요청의 발급 결과. 아직이면 pending. */
+export const getDownloadStatus = (requestId: string, signal?: AbortSignal) =>
+  downloadRequest(
+    `/api/ctf/challenge/download/${encodeURIComponent(requestId)}`,
+    {},
+    signal
+  );
