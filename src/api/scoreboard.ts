@@ -53,16 +53,29 @@ export interface MyTeamScore {
   recentSolves: RecentSolve[];
 }
 
-/** 점수가 있는 팀의 순위. page는 0부터. */
+/**
+ * 순위 비공개 중 참가자에게 오는 응답 (두 경로 공통). 점수·순위·팀 정보가 하나도 없다.
+ * 대회 설정에서 켜면 종료 N분 전(hiddenFrom)부터 종료(revealAt)까지. ADMIN·DEV 는 받지 않는다.
+ */
+export interface ScoreboardHidden {
+  hidden: true;
+  hiddenFrom: string;
+  revealAt: string;
+}
+
+export const isHidden = (data: unknown): data is ScoreboardHidden =>
+  typeof data === 'object' && data !== null && (data as { hidden?: unknown }).hidden === true;
+
+/** 점수가 있는 팀의 순위. page는 0부터. 순위 비공개 중이면 ScoreboardHidden. */
 export const getScoreboard = (page: number, size: number, signal?: AbortSignal) =>
-  apiRequest<ScoreboardPage>(`/api/ctf/scoreboard?page=${page}&size=${size}`, {
+  apiRequest<ScoreboardPage | ScoreboardHidden>(`/api/ctf/scoreboard?page=${page}&size=${size}`, {
     signal,
     fallback: '스코어보드를 불러오지 못했습니다.',
   });
 
-/** 내 팀 점수. 팀이 없으면 team이 null이다. */
+/** 내 팀 점수. 팀이 없으면 team이 null이다. 순위 비공개 중이면 ScoreboardHidden. */
 export const getMyTeamScore = (signal?: AbortSignal) =>
-  apiRequest<{ team: MyTeamScore | null }>('/api/ctf/scoreboard/me', {
+  apiRequest<{ team: MyTeamScore | null } | ScoreboardHidden>('/api/ctf/scoreboard/me', {
     signal,
     fallback: '내 팀 점수를 불러오지 못했습니다.',
   });

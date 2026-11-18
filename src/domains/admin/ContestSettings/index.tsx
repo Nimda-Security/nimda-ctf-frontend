@@ -27,7 +27,9 @@ import {
 import Layout from '@/components/Layout';
 import './ContestSettings.css';
 
-const FREEZE_OPTIONS = [10, 30, 60, 120];
+/** 순위 비공개 시점 선택지 (분 전). 서버 허용 범위 1~600, 기본 120 (게임 모드 D14) */
+const FREEZE_OPTIONS = [30, 60, 120, 180];
+const DEFAULT_FREEZE_MINUTES = 120;
 const QUICK_ADJUST = [
   ['+30분', 30],
   ['+1시간', 60],
@@ -48,8 +50,8 @@ const FIELD_LABEL: Record<string, string> = {
   ENDS_AT: '종료',
   CLEANUP_INSTANCES: '인스턴스 정리',
   CHALLENGES_VISIBLE: '종료 후 문제 공개',
-  FREEZE_SCOREBOARD: '스코어보드 고정',
-  FREEZE_MINUTES: '고정 시점(분 전)',
+  FREEZE_SCOREBOARD: '순위 비공개',
+  FREEZE_MINUTES: '비공개 시점(분 전)',
   REOPENED: '결과 확정 취소 (다시 열림)',
   FINALIZED: '결과 확정',
 };
@@ -76,7 +78,7 @@ const blankForm = (serverNow: number): Form => ({
   cleanup: true,
   visible: true,
   freeze: false,
-  freezeMinutes: 30,
+  freezeMinutes: DEFAULT_FREEZE_MINUTES,
 });
 
 const toForm = (s: AdminSchedule, serverNow: number): Form => {
@@ -92,7 +94,7 @@ const toForm = (s: AdminSchedule, serverNow: number): Form => {
     cleanup: s.cleanupInstancesOnEnd ?? true,
     visible: s.challengesVisibleAfterEnd ?? true,
     freeze: s.freezeScoreboard ?? false,
-    freezeMinutes: s.freezeMinutesBeforeEnd ?? 30,
+    freezeMinutes: s.freezeMinutesBeforeEnd ?? DEFAULT_FREEZE_MINUTES,
   };
 };
 
@@ -239,7 +241,7 @@ function ContestSettingsPage() {
       cleanupInstancesOnEnd: form?.cleanup ?? true,
       challengesVisibleAfterEnd: form?.visible ?? true,
       freezeScoreboard: form?.freeze ?? false,
-      freezeMinutesBeforeEnd: form?.freezeMinutes ?? 30,
+      freezeMinutesBeforeEnd: form?.freezeMinutes ?? DEFAULT_FREEZE_MINUTES,
     };
   };
 
@@ -524,13 +526,13 @@ function ContestSettingsPage() {
                     onChange={(v) => set('cleanup', v)}
                   />
                   <Toggle
-                    title="스코어보드 미리 고정"
-                    desc="종료 전에 순위 갱신을 멈춥니다. (설정만 저장, 고정 동작은 준비 중)"
+                    title="종료 전 순위 비공개"
+                    desc="종료 N분 전부터 종료까지 참가자에게 스코어보드(순위·점수)를 통째로 감춥니다. 운영진(ADMIN·DEV)은 계속 봅니다."
                     checked={form.freeze}
                     onChange={(v) => set('freeze', v)}
                   />
                   <label className={form.freeze ? 'cs-freeze' : 'cs-freeze cs-freeze--off'}>
-                    <span>고정 시점</span>
+                    <span>비공개 시점</span>
                     <select
                       value={form.freezeMinutes}
                       disabled={!form.freeze}
@@ -545,6 +547,15 @@ function ContestSettingsPage() {
                         ))}
                     </select>
                   </label>
+                  {form.freeze && !Number.isNaN(formEnd) && (
+                    <p className="cs-freeze-preview">
+                      종료 {formatKst(formEnd)} · 비공개 {formatKst(formEnd - form.freezeMinutes * 60_000)} ~
+                      종료 · 공개 {formatKst(formEnd)}
+                      {!Number.isNaN(formStart) &&
+                        formEnd - form.freezeMinutes * 60_000 <= formStart &&
+                        ' — 비공개 시점이 대회 시작보다 이릅니다. 대회 내내 순위가 감춰집니다.'}
+                    </p>
+                  )}
                 </section>
 
                 <div className="cs-actions">

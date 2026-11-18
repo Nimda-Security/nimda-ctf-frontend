@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { logoutAPI, type CurrentUser } from '@/api/auth';
+import { logoutAPI, seesHiddenRanking, type CurrentUser } from '@/api/auth';
 import { formatDateTime, formatTime } from '@/api/client';
 import {
   getMyTeamScore,
   getScoreboard,
+  isHidden,
   type MyTeamScore,
+  type ScoreboardHidden,
   type ScoreboardPage as ScoreboardData,
 } from '@/api/scoreboard';
+import { formatCountdown } from '@/api/schedule';
 import Layout from '@/components/Layout';
+import { kstClock, kstShort, useSchedule } from '@/hooks/useSchedule';
 import './Scoreboard.css';
 
 const PAGE_SIZE = 20;
@@ -17,6 +21,7 @@ const REFRESH_MS = 30_000;
 type LoadState =
   | { status: 'loading' }
   | { status: 'error'; message: string }
+  | { status: 'hidden'; info: ScoreboardHidden }
   | { status: 'ok'; board: ScoreboardData; myTeam: MyTeamScore | null };
 
 function ScoreboardPage() {
@@ -24,6 +29,9 @@ function ScoreboardPage() {
   const navigate = useNavigate();
   const [page, setPage] = useState(0);
   const [load, setLoad] = useState<LoadState>({ status: 'loading' });
+  const schedule = useSchedule(() => navigate('/login', { replace: true }));
+  // 비공개 시작 시각을 넘기면 다음 갱신(30초)을 기다리지 않고 바로 다시 받는다
+  const hiddenNow = schedule.rankingHidden && !seesHiddenRanking(user);
 
   const fetchAll = useCallback(
     async (signal: AbortSignal) => {
@@ -39,11 +47,13 @@ function ScoreboardPage() {
         setLoad({ status: 'error', message: board.message });
         return;
       }
-      setLoad({
-        status: 'ok',
-        board: board.data,
-        myTeam: mine.status === 'ok' ? mine.data.team : null,
-      });
+      // G05: 순위 비공개 중 참가자에게는 점수·순위가 하나도 오지 않는다
+      if (isHidden(board.data)) {
+        setLoad({ status: 'hidden', info: board.data });
+        return;
+      }
+      const mineData = mine.status === 'ok' && !isHidden(mine.data) ? mine.data.team : null;
+      setLoad({ status: 'ok', board: board.data, myTeam: mineData });
     },
     [navigate, page]
   );
@@ -62,7 +72,7 @@ function ScoreboardPage() {
       controller.abort();
       window.clearInterval(timer);
     };
-  }, [fetchAll]);
+  }, [fetchAll, hiddenNow]);
 
   const handleLogout = async () => {
     await logoutAPI();
@@ -92,6 +102,32 @@ function ScoreboardPage() {
       </section>
 
       <div className="sb">
+        {/* G04: 비공개 예고. 순위 비공개를 켰고 아직 시작 전일 때 */}
+        {schedule.hiddenFrom !== null && schedule.now < schedule.hiddenFrom && (
+          <p className="sb-notice" role="status">
+            {kstClock(schedule.hiddenFrom)} 부터 대회 종료까지 순위가 비공개됩니다 ·{' '}
+            <strong>{formatCountdown(schedule.hiddenFrom - schedule.now)}</strong> 남음
+          </p>
+        )}
+        {load.status !== 'hidden' && schedule.rankingHidden && seesHiddenRanking(user) && (
+          <p className="sb-notice sb-notice--staff" role="status">
+            운영진 보기 — 참가자에게는 지금 순위가 비공개입니다 (종료 {kstClock(schedule.endsAt)} 에 공개).
+          </p>
+        )}
+
+        {load.status === 'hidden' && (
+          <section className="sb-hidden">
+            <p className="sb-hidden__eyebrow">RANKING HIDDEN</p>
+            <h2 className="sb-hidden__title">지금은 순위를 볼 수 없습니다</h2>
+            <p className="sb-hidden__text">
+              대회 종료 전 마지막 구간에는 순위와 점수를 공개하지 않습니다. 대회가 끝나면 최종 순위가
+              공개됩니다.
+            </p>
+            <p className="sb-hidden__time">
+              비공개 {kstShort(load.info.hiddenFrom)} → 공개 {kstShort(load.info.revealAt)}
+            </p>
+          </section>
+        )}
         {load.status === 'loading' && (
           <p className="sb__message">순위를 불러오는 중입니다.</p>
         )}

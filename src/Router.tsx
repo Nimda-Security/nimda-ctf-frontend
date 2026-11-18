@@ -5,6 +5,7 @@ import ContestSettingsPage from '@/domains/admin/ContestSettings';
 import TeamBuildingPage from '@/domains/admin/TeamBuilding';
 import ChallengeDetailPage from '@/domains/ChallengeDetail';
 import DashboardPage from '@/domains/Dashboard';
+import DevChallengesPage from '@/domains/dev/Challenges';
 import HistoryPage from '@/domains/History';
 import HistoryDetailPage from '@/domains/History/Detail';
 import ScoreboardPage from '@/domains/Scoreboard';
@@ -19,6 +20,7 @@ const Router = () => {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/challenges/:code" element={<ChallengeDetailPage />} />
           <Route path="/admin/challenges/new" element={<ChallengeCreatePage />} />
+          <Route path="/dev/challenges" element={<DevChallengesPage />} />
           <Route path="/scoreboard" element={<ScoreboardPage />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/history/:contestId" element={<HistoryDetailPage />} />

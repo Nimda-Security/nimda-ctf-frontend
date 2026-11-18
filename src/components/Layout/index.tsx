@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { canManageTeams, type CurrentUser } from '@/api/auth';
+import { canManageTeams, isDev, type CurrentUser } from '@/api/auth';
 import './Layout.css';
 
 interface LayoutProps {
@@ -38,10 +38,11 @@ const Layout = ({ children, user, onLogout }: LayoutProps) => {
           {user && (
             <nav className="layout__nav" aria-label="CTF 메뉴">
               <NavLink to="/" end>
-                문제
+                해결한 문제
               </NavLink>
               <NavLink to="/scoreboard">스코어보드</NavLink>
               <NavLink to="/history">이력</NavLink>
+              {isDev(user) && <NavLink to="/dev/challenges">문제 관리</NavLink>}
               {canManageTeams(user) && (
                 <>
                   <NavLink to="/admin/teams">팀 빌딩</NavLink>

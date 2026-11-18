@@ -10,6 +10,10 @@ export interface Schedule {
   endsAt: string | null;
   status: ContestPhase;
   serverTime: string;
+  /** 순위 비공개가 시작되는 시각 (종료 N분 전). 순위 비공개를 껐거나 대회가 없으면 null */
+  scoreboardHiddenFrom: string | null;
+  /** 지금 참가자에게 순위가 가려져 있는지 */
+  scoreboardHidden: boolean;
 }
 
 export interface ScheduleHistory {
