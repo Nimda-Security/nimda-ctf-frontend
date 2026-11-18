@@ -360,3 +360,61 @@
     font-size: 32px;
   }
 }
+
+/* ---------------------------------------------------------------- 순위 비공개 (Figma G04·G05) */
+
+.sb-notice {
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #a06a00;
+  background-color: rgb(255 193 7 / 0.12);
+  border: 1px solid rgb(255 193 7 / 0.6);
+  border-radius: 6px;
+}
+
+.sb-notice strong {
+  font-family: var(--font-mono);
+}
+
+.sb-notice--staff {
+  color: var(--color-white);
+  background-color: var(--color-blue);
+  border-color: var(--color-blue);
+}
+
+.sb-hidden {
+  max-width: 640px;
+  margin: 32px auto;
+  padding: 40px 32px;
+  text-align: center;
+  color: var(--color-white);
+  background-color: var(--color-black);
+  border-radius: 6px;
+}
+
+.sb-hidden__eyebrow {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--color-yellow);
+}
+
+.sb-hidden__title {
+  margin-top: 8px;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.sb-hidden__text {
+  margin-top: 12px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--color-gray-300);
+}
+
+.sb-hidden__time {
+  margin-top: 16px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}

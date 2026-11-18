@@ -8,10 +8,15 @@ export interface CurrentUser {
   roles?: string[];
 }
 
+/** 문제 전체 목록·등록·공개 전환·삭제는 ROLE_DEV 만 (게임 모드, Figma G07). ADMIN 도 안 된다. */
 export const canCreateChallenge = (user: CurrentUser): boolean =>
-  Boolean(
-    user.roles?.includes('ROLE_DEV') || user.roles?.includes('ROLE_ADMIN')
-  );
+  Boolean(user.roles?.includes('ROLE_DEV'));
+
+export const isDev = canCreateChallenge;
+
+/** 순위 비공개 중에도 전체 순위를 보는 운영진 (서버와 같은 기준: ADMIN·DEV) */
+export const seesHiddenRanking = (user: CurrentUser): boolean =>
+  Boolean(user.roles?.includes('ROLE_DEV') || user.roles?.includes('ROLE_ADMIN'));
 
 /** 팀 빌딩·대회 설정은 백엔드가 ADMIN에게만 연다. */
 export const canManageTeams = (user: CurrentUser): boolean =>
