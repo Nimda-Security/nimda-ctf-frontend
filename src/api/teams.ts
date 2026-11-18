@@ -82,3 +82,12 @@ export const changeTeamLeader = (teamId: number, userId: number) =>
     json: { userId },
     fallback: '팀장을 바꾸지 못했습니다.',
   });
+
+// ---------------------------------------------------------------- 참가자
+
+/** 현재 대회에서 내가 속한 팀. 팀이 없으면 team이 null이다. */
+export const getMyTeam = (signal?: AbortSignal) =>
+  apiRequest<{ team: Team | null }>('/api/ctf/teams/me', {
+    signal,
+    fallback: '내 팀 정보를 불러오지 못했습니다.',
+  });

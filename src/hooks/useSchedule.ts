@@ -15,6 +15,10 @@ export interface ScheduleState {
   /** 서버 시계 기준 현재 시각(ms). 1초마다 갱신된다. */
   now: number;
   phase: ContestPhase;
+  /** 순위 비공개 시작 시각(ms). 대회 설정에서 껐거나 대회가 없으면 null */
+  hiddenFrom: number | null;
+  /** 지금 참가자에게 순위가 가려져 있는지 (hiddenFrom ≤ now < endsAt). 1초 안에 바뀐다 */
+  rankingHidden: boolean;
 }
 
 /**
@@ -22,9 +26,11 @@ export interface ScheduleState {
  * 남은 시간은 참가자 PC 시계가 아니라 응답의 serverTime과의 차이로 계산한다.
  */
 export const useSchedule = (onUnauthenticated?: () => void): ScheduleState => {
-  const [range, setRange] = useState<{ startsAt: number | null; endsAt: number | null } | null>(
-    null
-  );
+  const [range, setRange] = useState<{
+    startsAt: number | null;
+    endsAt: number | null;
+    hiddenFrom: number | null;
+  } | null>(null);
   const [offset, setOffset] = useState(0);
   const [clock, setClock] = useState(() => Date.now());
 
@@ -43,6 +49,7 @@ export const useSchedule = (onUnauthenticated?: () => void): ScheduleState => {
           setRange({
             startsAt: s.startsAt ? Date.parse(s.startsAt) : null,
             endsAt: s.endsAt ? Date.parse(s.endsAt) : null,
+            hiddenFrom: s.scoreboardHiddenFrom ? Date.parse(s.scoreboardHiddenFrom) : null,
           });
         })
         .catch(() => {});
@@ -60,14 +67,41 @@ export const useSchedule = (onUnauthenticated?: () => void): ScheduleState => {
   }, []);
 
   const now = clock + offset;
-  // 경계(시작·종료)를 넘으면 phase가 1초 안에 바뀐다.
+  const hiddenFrom = range?.hiddenFrom ?? null;
+  const endsAt = range?.endsAt ?? null;
+  // 경계(시작·종료·비공개 시작)를 넘으면 1초 안에 바뀐다.
   return {
     loaded: range !== null,
     startsAt: range?.startsAt ?? null,
-    endsAt: range?.endsAt ?? null,
+    endsAt,
     now,
     phase: range ? phaseAt(now, range.startsAt, range.endsAt) : 'NOT_SCHEDULED',
+    hiddenFrom,
+    rankingHidden: hiddenFrom !== null && endsAt !== null && now >= hiddenFrom && now < endsAt,
   };
+};
+
+/** "16:00" (KST) */
+export const kstClock = (ms: number | null) => {
+  if (ms === null) return '-';
+  return new Date(ms + 9 * 3600_000).toISOString().slice(11, 16);
+};
+
+/** "03/21 12:41" (KST ISO 문자열에서) */
+export const kstShort = (iso: string | null | undefined) => {
+  if (!iso) return '-';
+  const local = new Date(Date.parse(iso) + 9 * 3600_000).toISOString();
+  return `${local.slice(5, 10).replace('-', '/')} ${local.slice(11, 16)}`;
+};
+
+/** "2분 전", "3시간 전" */
+export const ago = (iso: string, now: number) => {
+  const minutes = Math.max(0, Math.floor((now - Date.parse(iso)) / 60_000));
+  if (minutes < 1) return '방금';
+  if (minutes < 60) return `${minutes}분 전`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}시간 전`;
+  return `${Math.floor(hours / 24)}일 전`;
 };
 
 /** 대시보드 상단 통계의 "대회 남은 시간" 칸 */

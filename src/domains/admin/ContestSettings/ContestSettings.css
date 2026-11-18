@@ -539,3 +539,10 @@
     font-size: 24px;
   }
 }
+
+.cs-freeze-preview {
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-gray-600);
+}

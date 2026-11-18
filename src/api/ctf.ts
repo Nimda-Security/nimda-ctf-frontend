@@ -1,4 +1,5 @@
 import { addVersionToHeaders } from '@/constants/version';
+import { apiRequest } from './client';
 
 export const CATEGORIES = [
   'WEB',
@@ -16,15 +17,46 @@ export interface Challenge {
   code: string;
   title: string;
   category: Category;
-  /** 지금 풀면 받는 점수. 해결자가 늘면 decreasePoint씩 줄고 minPoint 밑으로는 안 내려간다. */
-  points: number;
+  /**
+   * 지금 풀면 받는 점수. 해결자가 늘면 decreasePoint씩 줄고 minPoint 밑으로는 안 내려간다.
+   * 순위 비공개 중인 참가자에게는 상세에서 null (maxPoint·decreasePoint 와 함께 보면 해결 팀 수가 드러나므로).
+   */
+  points: number | null;
   maxPoint: number;
   minPoint: number;
   decreasePoint: number;
   isolationType: 'NONE' | 'SHARED' | 'PER_USER';
   hasAttachment: boolean;
   isPublic: boolean;
+  /** 현재 대회에서 이 문제를 푼 팀 수. 전체 목록(DEV)에만 있다 */
+  solveCount?: number;
 }
+
+/**
+ * 우리 팀이 푼 문제 하나 (게임 모드 대시보드의 "해결한 문제" 카드, 상세의 "해결함" 배너).
+ * 참가자는 전체 문제 목록 대신 이것만 본다 (Figma G07).
+ */
+export interface SolvedChallenge {
+  code: string;
+  title: string;
+  category: Category;
+  isolationType: 'NONE' | 'SHARED' | 'PER_USER';
+  hasAttachment: boolean;
+  /** 이 풀이로 받은 점수. 순위 비공개 중에는 참가자에게 null */
+  awardedPoints: number | null;
+  /** KST ISO (예: 2026-03-21T12:41:00+09:00) */
+  solvedAt: string;
+  /** 푼 팀원 닉네임 */
+  solvedBy: string;
+}
+
+export type SolvedChallengesResult =
+  /** total: 참가자가 찾을 수 있는 문제 수 (공개 + 게임 물건에 연결된 문제). 코드·제목은 오지 않는다 */
+  | { status: 'ok'; total: number; solved: SolvedChallenge[] }
+  | { status: 'no-team'; message: string }
+  | { status: 'closed'; message: string }
+  | { status: 'unauthenticated' }
+  | { status: 'error'; message: string };
 
 export type ChallengesResult =
   | { status: 'ok'; challenges: Challenge[] }
@@ -54,6 +86,10 @@ const classify403 = (result: { success?: boolean; message?: string } | null) => 
 export interface ChallengeDetail extends Challenge {
   description: string;
   flagType: 'STATIC' | 'DYNAMIC';
+  /** 우리 팀(팀이 없으면 본인)이 현재 대회에서 풀었는지. false 면 "아직 풀지 않은 문제" 화면 (G03) */
+  solvedByMyTeam: boolean;
+  /** 풀었으면 그 기록, 아니면 null */
+  mySolve: SolvedChallenge | null;
 }
 
 export type ChallengeDetailResult =
@@ -140,7 +176,38 @@ export const createChallenge = async (
 };
 
 const LOAD_ERROR_MESSAGE = '문제 목록을 불러오지 못했습니다.';
+const SOLVED_ERROR_MESSAGE = '해결한 문제를 불러오지 못했습니다.';
 
+/** 우리 팀이 푼 문제 (참가자). 응답은 { total, solved }, solved 는 푼 순서대로 온다. */
+export const getSolvedChallenges = async (
+  signal?: AbortSignal
+): Promise<SolvedChallengesResult> => {
+  try {
+    const response = await fetch('/api/ctf/challenges/solved', {
+      headers: addVersionToHeaders(),
+      credentials: 'include',
+      signal,
+    });
+
+    const result = await response.json().catch(() => null);
+    if (response.status === 401) return { status: 'unauthenticated' };
+    if (response.status === 403) return classify403(result);
+
+    const data = result?.data;
+    if (!response.ok || !Array.isArray(data?.solved) || typeof data?.total !== 'number') {
+      return { status: 'error', message: result?.message || SOLVED_ERROR_MESSAGE };
+    }
+    return { status: 'ok', total: data.total, solved: data.solved };
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    return { status: 'error', message: SOLVED_ERROR_MESSAGE };
+  }
+};
+
+/**
+ * 전체 문제 목록 (초안 포함, 해결 팀 수). **ROLE_DEV 만** 부른다 (문제 관리 화면, G06).
+ * DEV 가 아니면 서버가 공통 형식이 아닌 403 을 주므로 로그인이 풀린 것으로 읽힌다 → 화면에서 먼저 막는다.
+ */
 export const getChallenges = async (
   signal?: AbortSignal
 ): Promise<ChallengesResult> => {
@@ -386,3 +453,89 @@ export const getSubmission = async (
     return { status: 'error', message: '채점 결과를 불러오지 못했습니다.' };
   }
 };
+
+export type DownloadResult =
+  // 링크 발급 완료. expiresAt이 비어 있으면 만료 시각을 모른다.
+  | { status: 'ready'; url: string; expiresAt: string | null }
+  // 3초 안에 발급되지 않았다. requestId로 getDownloadStatus를 폴링한다.
+  | { status: 'pending'; requestId: string }
+  | { status: 'unauthenticated' }
+  | { status: 'error'; message: string };
+
+const DOWNLOAD_ERROR_MESSAGE = '다운로드 링크를 받지 못했습니다.';
+
+const parseDownload = async (response: Response): Promise<DownloadResult> => {
+  const result = await response.json().catch(() => null);
+
+  // Spring Security가 막은 경우(비로그인)는 공통 응답 형식이 아니다.
+  if (
+    response.status === 401 ||
+    (response.status === 403 && result?.success === undefined)
+  ) {
+    return { status: 'unauthenticated' };
+  }
+  // 503은 CTF 서버가 준 발급 실패 사유를 message로 담아 온다.
+  if (!response.ok || !result?.data) {
+    return { status: 'error', message: result?.message || DOWNLOAD_ERROR_MESSAGE };
+  }
+
+  const data = result.data;
+  if (data.status === 'PENDING') {
+    return { status: 'pending', requestId: data.requestId };
+  }
+  if (data.status === 'READY' && data.url) {
+    return { status: 'ready', url: data.url, expiresAt: data.expiresAt || null };
+  }
+  return { status: 'error', message: DOWNLOAD_ERROR_MESSAGE };
+};
+
+const downloadRequest = async (
+  url: string,
+  init: RequestInit,
+  signal?: AbortSignal
+): Promise<DownloadResult> => {
+  try {
+    const response = await fetch(url, {
+      ...init,
+      headers: addVersionToHeaders(),
+      credentials: 'include',
+      signal,
+    });
+    return await parseDownload(response);
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    return { status: 'error', message: DOWNLOAD_ERROR_MESSAGE };
+  }
+};
+
+/** 첨부파일 다운로드 링크 요청. 같은 문제는 서버가 캐시한 링크를 돌려준다. */
+export const requestDownload = (code: string, signal?: AbortSignal) =>
+  downloadRequest(
+    `/api/ctf/challenge/${encodeURIComponent(code)}/download`,
+    { method: 'POST' },
+    signal
+  );
+
+/** 202를 받은 다운로드 요청의 발급 결과. 아직이면 pending. */
+export const getDownloadStatus = (requestId: string, signal?: AbortSignal) =>
+  downloadRequest(
+    `/api/ctf/challenge/download/${encodeURIComponent(requestId)}`,
+    {},
+    signal
+  );
+
+// ---------------------------------------------------------------- 문제 관리 (ROLE_DEV, G06)
+
+/** 공개/비공개(초안) 전환. 서버가 바뀐 공개 여부를 돌려준다 */
+export const toggleChallengePublic = (id: number) =>
+  apiRequest<boolean>(`/api/ctf/challenge/toggle-public/${id}`, {
+    method: 'POST',
+    fallback: '공개 여부를 바꾸지 못했습니다.',
+  });
+
+/** 문제 삭제. 정답 기록과 점수도 함께 정리된다 (서버) */
+export const deleteChallenge = (id: number) =>
+  apiRequest<string>(`/api/ctf/challenge/${id}`, {
+    method: 'DELETE',
+    fallback: '문제를 삭제하지 못했습니다.',
+  });
