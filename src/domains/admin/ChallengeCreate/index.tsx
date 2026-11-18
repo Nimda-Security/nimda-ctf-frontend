@@ -249,7 +249,7 @@ function ChallengeCreatePage() {
     setIsSubmitting(false);
 
     if (result.status === 'ok') {
-      navigate('/', { replace: true });
+      navigate('/dev/challenges', { replace: true });
     } else if (result.status === 'duplicate') {
       setErrors({ code: result.message });
     } else {

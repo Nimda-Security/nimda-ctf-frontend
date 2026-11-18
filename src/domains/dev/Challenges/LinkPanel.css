@@ -1,0 +1,392 @@
+/* 게임 물건 연결 패널 (Figma G09 오른쪽, G10). 문제 관리(devc) 버튼·칩 스타일을 같이 쓴다 */
+
+.lp__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  justify-content: flex-end;
+  background-color: rgb(0 0 0 / 0.25);
+}
+
+.lp {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  height: 100%;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: var(--color-white);
+  border-left: 1.5px solid var(--color-blue);
+  box-shadow: -8px 0 24px rgb(0 0 0 / 0.08);
+}
+
+.lp__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-gray-100);
+}
+
+.lp__crumb {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-gray-500);
+}
+
+.lp__title {
+  margin-top: 4px;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.lp__meta {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--color-gray-600);
+}
+
+.lp__close {
+  align-self: flex-start;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--color-gray-500);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.lp__notice {
+  padding: 10px 12px;
+  font-size: 13px;
+  color: #2f7a2f;
+  background-color: rgb(92 184 92 / 0.1);
+  border-radius: 6px;
+}
+
+.lp__notice--error {
+  color: var(--color-red);
+  background-color: rgb(214 68 84 / 0.08);
+}
+
+.lp__section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lp__label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.lp__label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--color-blue);
+}
+
+.lp__refresh {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-gray-500);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.lp__muted {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--color-gray-600);
+}
+
+.lp__muted--light {
+  color: var(--color-gray-500);
+}
+
+.lp__empty {
+  padding: 18px 16px;
+  text-align: center;
+  border: 1px dashed var(--color-gray-300);
+  border-radius: 6px;
+}
+
+.lp__empty strong {
+  font-size: 14px;
+}
+
+.lp__empty p {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-gray-600);
+}
+
+.lp__item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  background-color: #f7f7f7;
+  border: 1px solid var(--color-gray-200);
+  border-radius: 6px;
+}
+
+.lp__item--missing {
+  background-color: rgb(214 68 84 / 0.06);
+  border-color: rgb(214 68 84 / 0.4);
+}
+
+.lp__item-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lp__item-name {
+  font-size: 14px;
+}
+
+.lp__grow {
+  flex: 1;
+}
+
+.lp__key {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-black);
+}
+
+.lp__pill {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-gray-600);
+  background-color: var(--color-gray-50);
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.lp__pill--on,
+.lp__pill--this {
+  color: #2e7d32;
+  background-color: #eaf5ea;
+}
+
+.lp__pill--other {
+  color: #966914;
+  background-color: #fcf4e2;
+}
+
+.lp__pill--selected {
+  color: var(--color-blue);
+  background-color: var(--color-white);
+}
+
+.lp__link {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-blue);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.lp__link--danger {
+  color: var(--color-red);
+}
+
+.lp__warn {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--color-red);
+}
+
+.lp__warnbox {
+  padding: 10px 12px;
+  color: #966914;
+  background-color: #fcf4e2;
+  border-radius: 6px;
+}
+
+.lp__warnbox strong {
+  font-size: 13px;
+}
+
+.lp__warnbox p {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.lp__search {
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 13px;
+  border: 1px solid var(--color-gray-200);
+  border-radius: 6px;
+}
+
+.lp__zones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lp__objects {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.lp__object {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  text-align: left;
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-200);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.lp__object:hover {
+  border-color: var(--color-gray-400);
+}
+
+.lp__object--selected {
+  background-color: #e9f0fa;
+  border: 1.5px solid var(--color-blue);
+}
+
+.lp__object-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lp__hint {
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--color-gray-600);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.lp__form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  background-color: #e9f0fa;
+  border-radius: 8px;
+}
+
+.lp__form-title {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-blue);
+}
+
+.lp__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.lp__field input,
+.lp__field textarea {
+  width: 100%;
+  padding: 9px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-200);
+  border-radius: 6px;
+}
+
+.lp__field input[aria-invalid='true'] {
+  border-color: var(--color-red);
+}
+
+.lp__field small,
+.lp__toggle small {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--color-gray-600);
+}
+
+.lp__toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.lp__toggle input {
+  margin-top: 3px;
+}
+
+.lp__toggle span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+}
+
+.lp__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lp__api {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-gray-500);
+  word-break: break-all;
+}
+
+.lp__confirm {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-200);
+  border-radius: 8px;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.12);
+}
+
+.lp__confirm strong {
+  font-size: 16px;
+}
+
+.lp__confirm p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-gray-600);
+}
