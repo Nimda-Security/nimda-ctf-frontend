@@ -6,6 +6,7 @@ import TeamBuildingPage from '@/domains/admin/TeamBuilding';
 import ChallengeDetailPage from '@/domains/ChallengeDetail';
 import DashboardPage from '@/domains/Dashboard';
 import DevChallengesPage from '@/domains/dev/Challenges';
+import GamePage from '@/domains/Game';
 import HistoryPage from '@/domains/History';
 import HistoryDetailPage from '@/domains/History/Detail';
 import ScoreboardPage from '@/domains/Scoreboard';
@@ -15,9 +16,11 @@ const Router = () => {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/" element={<GamePage />} />
+        <Route path="/game" element={<GamePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route element={<ProtectedRoute />}>
-          <Route path="/" element={<DashboardPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/challenges/:code" element={<ChallengeDetailPage />} />
           <Route path="/admin/challenges/new" element={<ChallengeCreatePage />} />
           <Route path="/dev/challenges" element={<DevChallengesPage />} />
