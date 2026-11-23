@@ -546,3 +546,21 @@
   font-size: 12px;
   color: var(--color-gray-600);
 }
+
+/* Stage2 시간 개방 (MMO 게임, Stage2Panel) */
+.cs-stage2 {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cs-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cs-chips .cs-btn {
+  padding: 6px 14px;
+  font-size: 13px;
+}
