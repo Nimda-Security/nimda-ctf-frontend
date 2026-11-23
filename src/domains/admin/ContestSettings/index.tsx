@@ -25,6 +25,7 @@ import {
   type ScheduleUpdate,
 } from '@/api/schedule';
 import Layout from '@/components/Layout';
+import Stage2Panel from './Stage2Panel';
 import './ContestSettings.css';
 
 /** 순위 비공개 시점 선택지 (분 전). 서버 허용 범위 1~600, 기본 120 (게임 모드 D14) */
@@ -579,6 +580,8 @@ function ContestSettingsPage() {
                     {busy ? '저장 중...' : mode === 'create' ? '대회 만들기' : '저장'}
                   </button>
                 </div>
+
+                {mode === 'edit' && <Stage2Panel contestStart={savedStart} now={now} />}
               </div>
 
               <aside className="cs-side">
