@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useOutletContext } from 'react-router-dom';
 import { canManageTeams, logoutAPI, type CurrentUser } from '@/api/auth';
 import type { ApiResult } from '@/api/client';
@@ -155,6 +155,10 @@ function ContestSettingsPage() {
   const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; message: string } | null>(null);
   const [confirm, setConfirm] = useState<Confirm | null>(null);
   const [busy, setBusy] = useState(false);
+  // "새 대회 만들기"는 같은 화면 아래쪽 입력 칸을 바꾸므로, 그 칸으로 스크롤하고 이름 칸에 커서를 둔다
+  const formRef = useRef<HTMLElement | null>(null);
+  const nameRef = useRef<HTMLInputElement | null>(null);
+  const [focusForm, setFocusForm] = useState(false);
 
   const apply = useCallback((s: AdminSchedule) => {
     const serverNow = Date.parse(s.serverTime);
@@ -197,6 +201,20 @@ function ContestSettingsPage() {
       window.clearInterval(tick);
     };
   }, [allowed, reload, loadContests]);
+
+  // 결과 알림은 화면 위에 떠 있게 그린다(버튼은 맨 아래라 위쪽 문구는 안 보였다). 성공 알림은 5초 뒤 사라진다
+  useEffect(() => {
+    if (notice?.tone !== 'ok') return;
+    const timer = window.setTimeout(() => setNotice(null), 5000);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
+  useEffect(() => {
+    if (!focusForm || mode !== 'create') return;
+    setFocusForm(false);
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    nameRef.current?.focus({ preventScroll: true });
+  }, [focusForm, mode]);
 
   if (!allowed) return <Navigate to="/" replace />;
 
@@ -269,13 +287,18 @@ function ContestSettingsPage() {
     loadContests();
   };
 
+
   const saveEdit = (endsAtMs: number) =>
     run(() => updateSchedule(payload(endsAtMs)), '대회 일정이 저장되었습니다.', apply);
 
   const handleSave = () => {
     if (rangeError || !form) return;
     if (mode === 'create') {
-      run(() => createContest(payload(formEnd)), '새 대회를 만들었습니다.', apply);
+      // 만든 뒤에는 맨 위로 올려 새 대회(예정) 상태를 보여 준다
+      run(() => createContest(payload(formEnd)), '새 대회를 만들었습니다.', (s) => {
+        apply(s);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
       return;
     }
     // 확정된 대회의 종료를 미래로 바꾸면 백엔드가 대회를 다시 열고 확정 결과를 지운다.
@@ -326,6 +349,7 @@ function ContestSettingsPage() {
     setForm(blankForm(now));
     setMode('create');
     setNotice(null);
+    setFocusForm(true);
   };
 
   return (
@@ -415,15 +439,18 @@ function ContestSettingsPage() {
             )}
 
             {notice && (
-              <p className={`cs-notice cs-notice--${notice.tone}`} role="status">
+              <p className={`cs-notice cs-notice--${notice.tone} cs-notice--float`} role="status">
                 {notice.message}
+                <button type="button" className="cs-notice__close" aria-label="알림 닫기" onClick={() => setNotice(null)}>
+                  ✕
+                </button>
               </p>
             )}
 
             <div className="cs-columns">
               <div className="cs-main">
                 {mode === 'create' && (
-                  <p className="cs-mode" role="status">
+                  <p className="cs-mode" role="status" ref={(el) => { formRef.current = el; }}>
                     새 대회를 만드는 중입니다. 저장하면 현재 대회가 되고, 팀·점수판은 새 대회 기준으로 시작합니다.
                   </p>
                 )}
@@ -432,6 +459,7 @@ function ContestSettingsPage() {
                   <label className="cs-field">
                     <span>대회 이름</span>
                     <input
+                      ref={nameRef}
                       value={form.name}
                       maxLength={100}
                       placeholder={`비워 두면 NIMDACON ${form.startDate.slice(0, 4)}`}
