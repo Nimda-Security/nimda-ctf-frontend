@@ -62,6 +62,46 @@
   border: 1px solid var(--color-red);
 }
 
+/* 결과 알림: 저장 버튼은 화면 아래에 있으므로 어디를 보고 있어도 보이게 화면 위에 띄운다 */
+.cs-notice--float {
+  position: fixed;
+  top: 72px;
+  left: 50%;
+  z-index: 50;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(560px, calc(100vw - 32px));
+  font-weight: 600;
+  background-color: #ffffff;
+  border: 1px solid var(--color-gray-200);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
+}
+
+.cs-notice--float.cs-notice--ok {
+  color: #2f7a2f;
+  border-color: rgb(92 184 92 / 0.7);
+}
+
+.cs-notice--float.cs-notice--error {
+  background-color: #fff5f6;
+}
+
+.cs-notice__close {
+  margin-left: auto;
+  padding: 0 4px;
+  font-size: 12px;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.cs-mode {
+  scroll-margin-top: 80px;
+}
+
 .cs-status {
   display: flex;
   flex-direction: column;
